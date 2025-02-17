@@ -91,11 +91,15 @@ jobs:
             <plist version="1.0">
             <dict>
                 <key>method</key>
-                <string>app-store</string>
+                <string>app-store-connect</string>
                 <key>teamID</key>
                 <string>${TEAM_ID}</string>
                 <key>signingStyle</key>
                 <string>manual</string>
+                <key>stripSwiftSymbols</key>
+                <true/>
+                <key>uploadBitcode</key>
+                <false/>
                 <key>provisioningProfiles</key>
                 <dict>
                     <key>${BUNDLE_ID}</key>
@@ -125,7 +129,7 @@ jobs:
             xcodebuild -exportArchive \
               -archivePath build/App.xcarchive \
               -exportOptionsPlist /Users/distiller/project/ios/App/exportOptions.plist \
-              -exportPath build/App.ipa
+              -exportPath build/App.ipa \
               -allowProvisioningUpdates
               
       - run:
