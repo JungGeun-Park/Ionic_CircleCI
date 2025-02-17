@@ -1,54 +1,123 @@
-# This config was automatically generated from your source code
-# Stacks detected: deps:node:.
 version: 2.1
-orbs:
-  node: circleci/node@5
+
+executors:
+  mac:
+    macos:
+      xcode: 16.0.0
+    environment:
+      TEAM_ID: "22X77ENQ2H"
+      APPLE_ID: "puzznic@inka.co.kr"
+      CERTIFICATE_PASSWORD: "123456"
+      APP_SPECIFIC_PASSWORD: "qbrz-hmfz-robj-eohm"
+      PROVISIONING_PROFILE_NAME: "AppSealing Wildcard Distribution Profile"
+    working_directory: ~/project
+
 jobs:
-  test-node:
-    # Install node dependencies and run tests
-    executor: node/default
+  build_and_deploy:
+    executor: mac
     steps:
       - checkout
-      - node/install-packages:
-          pkg-manager: npm
+      
       - run:
-          name: Run tests
-          command: npm test --passWithNoTests
-  build-node:
-    # Build node project
-    executor: node/default
-    steps:
-      - checkout
-      - node/install-packages:
-          pkg-manager: npm
+          name: Install Dependencies
+          command: |
+            npm install -g @ionic/cli
+            npm install
+            
       - run:
-          command: npm run build
+          name: Build Ionic Project
+          command: |
+            ionic build
+            ionic capacitor add ios
+            ionic capacitor sync ios
+            
       - run:
-          name: Create the ~/artifacts directory if it doesn't exist
-          command: mkdir -p ~/artifacts
-      # Copy output to artifacts dir
+          name: Install Certificates
+          command: |
+            mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+            echo "$PROVISIONING_PROFILE" | base64 --decode > ~/Library/MobileDevice/Provisioning\ Profiles/profile.mobileprovision
+            echo "$DISTRIBUTION_CERTIFICATE" | base64 --decode > distribution.p12
+            
+            security create-keychain -p "circle" build.keychain
+            security import distribution.p12 -k build.keychain -P "$CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+            security list-keychains -s build.keychain
+            security default-keychain -s build.keychain
+            security unlock-keychain -p "circle" build.keychain
+            security set-keychain-settings -t 3600 -u build.keychain
+            
       - run:
-          name: Copy artifacts
-          command: cp -R build dist public .output .next .docusaurus ~/artifacts 2>/dev/null || true
-      - store_artifacts:
-          path: ~/artifacts
-          destination: node-build
-  deploy:
-    # This is an example deploy job, not actually used by the workflow
-    docker:
-      - image: cimg/base:stable
-    steps:
-      # Replace this with steps to deploy to users
+          name: Update Build Number
+          command: |
+            cd ios/App
+            agvtool new-version -all $CIRCLE_BUILD_NUM
+            
       - run:
-          name: deploy
-          command: '#e.g. ./deploy.sh'
+          name: Extract Bundle ID
+          command: |
+            cd ios/App
+            BUNDLE_ID=$(grep -A1 "PRODUCT_BUNDLE_IDENTIFIER" App.xcodeproj/project.pbxproj | grep -v PRODUCT_BUNDLE_IDENTIFIER | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
+            echo "export BUNDLE_ID=$BUNDLE_ID" >> $BASH_ENV
+            source $BASH_ENV
+            
+      - run:
+          name: Create exportOptions.plist
+          command: |
+            cat > ios/App/exportOptions.plist << EOF
+            <?xml version="1.0" encoding="UTF-8"?>
+            <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+            <plist version="1.0">
+            <dict>
+                <key>method</key>
+                <string>app-store</string>
+                <key>teamID</key>
+                <string>${TEAM_ID}</string>
+                <key>signingStyle</key>
+                <string>manual</string>
+                <key>provisioningProfiles</key>
+                <dict>
+                    <key>${BUNDLE_ID}</key>
+                    <string>${PROVISIONING_PROFILE_NAME}</string>
+                </dict>
+            </dict>
+            </plist>
+            EOF
+            
+      - run:
+          name: Build iOS App
+          command: |
+            cd ios/App
+            xcodebuild clean archive \
+              -workspace App.xcworkspace \
+              -scheme App \
+              -configuration Release \
+              -archivePath build/App.xcarchive \
+              CODE_SIGN_STYLE=Manual \
+              PROVISIONING_PROFILE_SPECIFIER="$PROVISIONING_PROFILE_NAME" \
+              CODE_SIGN_IDENTITY="iPhone Distribution"
+              
+      - run:
+          name: Export IPA
+          command: |
+            cd ios/App
+            xcodebuild -exportArchive \
+              -archivePath build/App.xcarchive \
+              -exportOptionsPlist exportOptions.plist \
+              -exportPath build/App.ipa
+              
+      - run:
+          name: Upload to TestFlight
+          command: |
+            xcrun altool --upload-app \
+              -f ios/App/build/App.ipa/App.ipa \
+              -t ios \
+              --apple-id "$APPLE_ID" \
+              --password "$APP_SPECIFIC_PASSWORD"
+
 workflows:
-  build-and-test:
+  version: 2
+  build_and_deploy:
     jobs:
-      - test-node
-      - build-node:
-          requires:
-            - test-node
-    # - deploy:
-    #     requires:
-    #       - build-node
+      - build_and_deploy:
+          filters:
+            branches:
+              only: main
