@@ -28,7 +28,6 @@ jobs:
           name: Build Ionic Project
           command: |
             ionic build
-            ionic capacitor add ios
             ionic capacitor sync ios
             
       - run:
