@@ -52,10 +52,19 @@ jobs:
       - run:
           name: Extract Bundle ID
           command: |
-            cd ios/App
-            BUNDLE_ID=$(grep -A1 "PRODUCT_BUNDLE_IDENTIFIER" App.xcodeproj/project.pbxproj | grep -v PRODUCT_BUNDLE_IDENTIFIER | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
-            echo "export BUNDLE_ID=$BUNDLE_ID" >> $BASH_ENV
-            source $BASH_ENV
+            cd /Users/distiller/project/platforms/ios
+            
+            # Extract Bundle ID from config.xml and properly format it
+            BUNDLE_ID=$(grep -A1 "widget" ../../config.xml | grep "id=" | sed 's/.*id="\([^"]*\).*/\1/')
+            
+            # Validate and export the Bundle ID
+            if [ -z "$BUNDLE_ID" ]; then
+              echo "❌ ERROR: Could not extract valid Bundle ID"
+              exit 1
+            else
+              echo "✅ Bundle ID: $BUNDLE_ID"
+              echo "BUNDLE_ID=$BUNDLE_ID" >> $BASH_ENV
+            fi
             
       - run:
           name: Create exportOptions.plist
