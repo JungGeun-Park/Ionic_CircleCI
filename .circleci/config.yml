@@ -52,7 +52,7 @@ jobs:
       - run:
           name: Extract Bundle ID
           command: |
-            cd /Users/distiller/project/platforms/ios/App
+            cd /Users/distiller/project/ios/App
             
             # Extract Bundle ID from config.xml and properly format it
             BUNDLE_ID=$(grep -A1 "widget" ../../config.xml | grep "id=" | sed 's/.*id="\([^"]*\).*/\1/')
