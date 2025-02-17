@@ -1,0 +1,7 @@
+{
+  "name": "Ionic_CircleCI",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "angular"
+}
