@@ -34,9 +34,9 @@ jobs:
           name: Install Certificates
           command: |
             mkdir -p /Users/distiller/Library/Developer/Xcode/UserData/Provisioning\ Profiles/
-            cp /Users/distiller/project/ios/profile.mobileprovision /Users/distiller/Library/Developer/Xcode/UserData/Provisioning\ Profiles/
+            cp /Users/distiller/project/ios/App/profile.mobileprovision /Users/distiller/Library/Developer/Xcode/UserData/Provisioning\ Profiles/
             security create-keychain -p "circle" build.keychain
-            security import /Users/distiller/project/ios/distribution.p12 -k build.keychain -P "$CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+            security import /Users/distiller/project/ios/App/distribution.p12 -k build.keychain -P "$CERTIFICATE_PASSWORD" -T /usr/bin/codesign
             security list-keychains -s build.keychain
             security default-keychain -s build.keychain
             security unlock-keychain -p "circle" build.keychain
