@@ -25,12 +25,6 @@ jobs:
             npm install
             
       - run:
-          name: Build Ionic Project
-          command: |
-            ionic build
-            ionic capacitor sync ios
-            
-      - run:
           name: Install Certificates
           command: |
             mkdir -p /Users/distiller/Library/Developer/Xcode/UserData/Provisioning\ Profiles/
@@ -44,6 +38,12 @@ jobs:
             security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "circle" build.keychain
             
       - run:
+          name: Build Ionic Project
+          command: |
+            ionic build
+            ionic capacitor sync ios
+            
+      - run:
           name: Update Build Number
           command: |
             cd ios/App
@@ -52,10 +52,15 @@ jobs:
       - run:
           name: Extract Bundle ID
           command: |
-            cd /Users/distiller/project/ios/App
+            cd /Users/distiller/project
             
-            # Extract Bundle ID from config.xml and properly format it
-            BUNDLE_ID=$(grep -A1 "widget" ../../config.xml | grep "id=" | sed 's/.*id="\([^"]*\).*/\1/')
+            # Try to extract Bundle ID from capacitor.config.ts first
+            if [ -f "capacitor.config.ts" ]; then
+              BUNDLE_ID=$(grep -o "appId: '[^']*'" capacitor.config.ts | cut -d"'" -f2)
+            # If not found, try package.json
+            elif [ -f "package.json" ]; then
+              BUNDLE_ID=$(node -p "require('./package.json').capacitor?.appId || ''")
+            fi
             
             # Validate and export the Bundle ID
             if [ -z "$BUNDLE_ID" ]; then
