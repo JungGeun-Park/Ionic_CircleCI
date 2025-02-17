@@ -74,7 +74,7 @@ jobs:
       - run:
           name: Create exportOptions.plist
           command: |
-            cat > ios/App/exportOptions.plist \<< EOF
+            cat > /Users/distiller/project/ios/App/exportOptions.plist \<< EOF
             <?xml version="1.0" encoding="UTF-8"?>
             <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
             <plist version="1.0">
@@ -113,8 +113,9 @@ jobs:
             cd ios/App
             xcodebuild -exportArchive \
               -archivePath build/App.xcarchive \
-              -exportOptionsPlist exportOptions.plist \
+              -exportOptionsPlist /Users/distiller/project/ios/App/exportOptions.plist \
               -exportPath build/App.ipa
+              -allowProvisioningUpdates
               
       - run:
           name: Upload to TestFlight
