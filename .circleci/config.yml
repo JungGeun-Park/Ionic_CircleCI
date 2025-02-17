@@ -33,16 +33,15 @@ jobs:
       - run:
           name: Install Certificates
           command: |
-            mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
-            echo "$PROVISIONING_PROFILE" | base64 --decode > ~/Library/MobileDevice/Provisioning\ Profiles/profile.mobileprovision
-            echo "$DISTRIBUTION_CERTIFICATE" | base64 --decode > distribution.p12
-            
+            mkdir -p /Users/distiller/Library/Developer/Xcode/UserData/Provisioning\ Profiles/
+            cp /Users/distiller/project/ios/profile.mobileprovision /Users/distiller/Library/Developer/Xcode/UserData/Provisioning\ Profiles/
             security create-keychain -p "circle" build.keychain
-            security import distribution.p12 -k build.keychain -P "$CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+            security import /Users/distiller/project/ios/distribution.p12 -k build.keychain -P "$CERTIFICATE_PASSWORD" -T /usr/bin/codesign
             security list-keychains -s build.keychain
             security default-keychain -s build.keychain
             security unlock-keychain -p "circle" build.keychain
             security set-keychain-settings -t 3600 -u build.keychain
+            security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "circle" build.keychain
             
       - run:
           name: Update Build Number
