@@ -120,4 +120,4 @@ workflows:
       - build_and_deploy:
           filters:
             branches:
-              only: main
+              only: circleci-project-setup
